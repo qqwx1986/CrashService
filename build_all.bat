@@ -1,0 +1,4 @@
+start build_client_linux.bat
+start build_client_windows.bat
+start build_server_linux.bat
+start build_server_windows.bat
