@@ -22,11 +22,6 @@ UE相关平台Crash服务处理，包含客户端（windows,android,ios）和服
 
 打包UE4项目后，拷贝 build/CrashReportClient.exe 到 ${ClientPack}/Engine/Binaries/Win64/
 
-拷贝 config/CrashReportClient.json 到 ${ClientPack}/Engine/Binaries/Win64/ 并修改相关配置
-
-Url 服务器httpUrl Ver 客户端二进制文件的版本（建议直接用二进制文件的md5作为版本号），如果填空，启动时会去
-${ClientPack}/${ProjectName}/Binaries/Win64/下匹配相关二进制并实时计算md5码
-
 ###上传符号表
 执行 build_client_windows.bat 生成到 build/CrashReportClient.exe ，或者执行 build_client_linux.bat，build_client_linux.sh，上传符号表的客户端可以跑在win&linux下
 
