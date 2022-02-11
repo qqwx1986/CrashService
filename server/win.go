@@ -9,8 +9,14 @@ import (
 	"time"
 )
 
+type minidumpChanType struct {
+	path     string
+	ver      string
+	platform string
+}
+
 func unPackMinidump(packet *cmn.DumpPacketType, platform string) {
-	path := filepath.Join(crashBasePath, platform, packet.Version, time.Now().Format("2006-01-02"),packet.CrashGuid)
+	path := filepath.Join(crashBasePath, platform, packet.Version, time.Now().Format("2006-01-02"), packet.CrashGuid)
 	cmn.MkdirAllSafe(path)
 	for _, File := range packet.Files {
 		if err := cmn.UnPackWriteFile(path, File); err != nil {
@@ -41,6 +47,7 @@ func anlyiseMiniDump(miniDump *minidumpChanType) {
 	stdout, _ := os.Create(filepath.Join(miniDump.path, "Callstack.txt"))
 	defer stdout.Close()
 	attr.Files[1] = stdout
+	attr.Files[2] = stdout
 	process, err := os.StartProcess(dumpAnlyisePath, argv, attr)
 	if err != nil {
 		logrus.Errorf("StartProcess %s", err.Error())

@@ -22,8 +22,7 @@ var debugSymbols *string
 var crashPath string
 
 //linux平台
-var crc *string
-var absLog *string
+var abslog *string
 
 var platform = runtime.GOOS
 
@@ -42,8 +41,9 @@ func Run() {
 	cmn.CloseLogFile()
 	if os.Args[1] == "uploadSymbol" {
 		var symbolPath = flag.String("symbolPath", "", "")
-		var executePath = flag.String("executePath", "", "")
+		var executePath = flag.String("executePath", "", "android not need")
 		var _platform = flag.String("platform", "windows", "windows/linux/android")
+		var version = flag.String("version", "", "version for symbol（android need version）")
 		var url = flag.String("url", "http://localhost:13333", "")
 		if err := flag.CommandLine.Parse(os.Args[2:]); err != nil {
 			logrus.Fatalf("Parse %s", err.Error())
@@ -53,10 +53,17 @@ func Run() {
 		if !cmn.IsFileExists(*symbolPath) {
 			logrus.Fatalf("symbolPath not exists")
 		}
-		if !cmn.IsFileExists(*executePath) {
+		if *_platform == "windows" && !cmn.IsFileExists(*executePath) {
 			logrus.Fatalf("executePath not exists")
 		}
-		pack, err = uploadSymbol(*symbolPath, *executePath, strings.ToLower(*_platform))
+		if *_platform != "windows" && *_platform != "linux" && *_platform != "android" {
+			logrus.Fatalf("platfor must be one of windows/linux/android")
+		}
+		if *_platform == "android" && len(*version) == 0 {
+			logrus.Infof("platform android lost version,set default version 'latest'")
+			*version = "latest"
+		}
+		pack, err = uploadSymbol(*symbolPath, *executePath, strings.ToLower(*_platform), *version)
 		if err != nil {
 			logrus.Fatalf("uploadSymbol %s", err.Error())
 		}
@@ -64,14 +71,14 @@ func Run() {
 		config.Url = *url
 		platform = *_platform
 	} else {
-		executerPath,_ := filepath.Abs(os.Args[0])
-		executerPath = filepath.Join(filepath.Dir(executerPath),"CrashReportClient.json")
+		executerPath, _ := filepath.Abs(os.Args[0])
+		executerPath = filepath.Join(filepath.Dir(executerPath), "CrashReportClient.json")
 		if file, err := ioutil.ReadFile(executerPath); err == nil {
 			if err = json.Unmarshal(file, config); err != nil {
 				logrus.Fatalf("json.Unmarshal %s", err.Error())
 			}
 		} else {
-			logrus.Fatalf("ioutil.ReadFile %s",err.Error())
+			logrus.Fatalf("ioutil.ReadFile %s", err.Error())
 		}
 		if platform == "windows" {
 			appName = flag.String("AppName", "AppName", "")
@@ -95,7 +102,19 @@ func Run() {
 			}
 			httpPath = cmn.HttpReceiverCrashPath
 		} else if platform == "linux" {
-
+			if len(os.Args) == 4 && strings.Contains(os.Args[1], "-Abslog=") && strings.Contains(os.Args[2], "-Unattended") {
+				path := os.Args[3]
+				if !filepath.IsAbs(path) {
+					path = path[1 : len(path)-1]
+				}
+				pack, err = packLinuxCrashDir(path)
+				if err != nil {
+					logrus.Fatalf("packWinCrashDir %s", err.Error())
+				}
+				httpPath = cmn.HttpReceiverCrashPath
+			} else {
+				logrus.Fatalf("Wrong Args %s", strings.Join(os.Args, ":"))
+			}
 		}
 	}
 	reader := bytes.NewBuffer(pack)

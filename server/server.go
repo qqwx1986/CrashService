@@ -28,17 +28,15 @@ var basePath *string
 var dumpAnlyisePath string
 var dumpAnlyiseUrl *string
 var daemon *bool
+var addr2linePath *string
+var androidSymbolName *string
 
 //channel 数量
 var chanNum *int
 
-type minidumpChanType struct {
-	path     string
-	ver      string
-	platform string
-}
-
 var minidumpChan chan *minidumpChanType
+var linuxCrashChan chan *linuxCrashChanType
+var androidCrashChan chan *androidCrashChanType
 var exitSignal chan os.Signal
 
 var exitChan []chan struct{}
@@ -50,6 +48,8 @@ func Run() {
 	dumpAnlyiseUrl = flag.String("dumpAnlyiseUrl", "https://raw.githubusercontent.com/qqwx1986/DumpAnlyise/main/Release/DumpAnlyise.exe", "DumpAnlyise.exe download url")
 	chanNum = flag.Int("chanNum", 1, "channel num for dumpAnlyise")
 	daemon = flag.Bool("daemon", false, "run as daemon (only windows)")
+	addr2linePath = flag.String("addr2linePath", "addr2line", "addr2line for android (arm)")
+	androidSymbolName = flag.String("androidSymbolName", "MyTestProject-armv7.so", "symbol name for android")
 	flag.CommandLine.Parse(os.Args[2:])
 	if *daemon {
 		args := make([]string, 0)
@@ -150,15 +150,34 @@ func Run() {
 			packet := &cmn.DumpPacketType{}
 			err := msgpack.Unmarshal(buff, packet)
 			if err != nil {
-				logrus.Errorf("msgpack.Unmarshal %d,%d,%s", request.ContentLength, len(buff), err.Error())
+				logrus.Errorf("msgpack.Unmarshal %s,%d,%d,%s", platform, request.ContentLength, len(buff), err.Error())
 				return
 			}
-			logrus.Infof("Recv %s,%s", packet.Version, packet.CrashGuid)
+			logrus.Infof("Recv %s,%s,%s", platform, packet.Version, packet.CrashGuid)
 			unPackMinidump(packet, platform)
 		} else if platform == "android" {
-
+			if strings.ToUpper(request.Method) != "POST" {
+				writer.WriteHeader(405)
+				logrus.Errorf("Http recv %s,%s,need POST", request.URL.Path, request.Method)
+				return
+			}
+			packet := &cmn.AndroidPacketType{}
+			err := json.Unmarshal(buff, packet)
+			if err != nil {
+				logrus.Errorf("json.Unmarshal %s,%d,%d,%s", platform, request.ContentLength, len(buff), err.Error())
+				return
+			}
+			logrus.Infof("Recv %s,%s,%s", platform, packet.Version, packet.CrashGuid)
+			unPackAndroidCrash(packet)
 		} else if platform == "linux" {
-
+			packet := &cmn.DumpPacketType{}
+			err := msgpack.Unmarshal(buff, packet)
+			if err != nil {
+				logrus.Errorf("msgpack.Unmarshal %s,%d,%d,%s", platform, request.ContentLength, len(buff), err.Error())
+				return
+			}
+			logrus.Infof("Recv %s,%s,%s", platform, packet.Version, packet.CrashGuid)
+			unPackLinuxCrash(packet, platform)
 		} else if platform == "ios" {
 
 		} else if platform == "mac" {
@@ -178,6 +197,8 @@ func Run() {
 		}
 	}()
 	minidumpChan = make(chan *minidumpChanType, 1024)
+	linuxCrashChan = make(chan *linuxCrashChanType, 1024)
+	androidCrashChan = make(chan *androidCrashChanType, 1024)
 	exitSignal = make(chan os.Signal)
 	signal.Notify(exitSignal, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGINT)
 	waitChan = &sync.WaitGroup{}
@@ -206,6 +227,10 @@ func processChan(idx int) {
 			return
 		case dump := <-minidumpChan:
 			anlyiseMiniDump(dump)
+		case crash := <-linuxCrashChan:
+			anlyiseLinuxCrash(crash)
+		case crash := <-androidCrashChan:
+			anlyiseAndroidCrash(crash)
 		}
 	}
 }

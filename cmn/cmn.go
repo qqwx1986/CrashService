@@ -30,8 +30,12 @@ type DumpPacketType struct {
 }
 
 type AndroidPacketType struct {
-	Version   string
-	CrashGuid string
+	Platform   string
+	Version    string
+	CrashGuid  string
+	Dump       string
+	Log        string
+	DeviceInfo DeviceInfoType
 }
 
 type SymbolPacketType struct {
@@ -40,19 +44,20 @@ type SymbolPacketType struct {
 	Files    []*FileContentType
 }
 type DeviceInfoType struct {
-	Platform  string
-	DeviceId  string
-	Cpu       string
-	Gpu       string
-	Memory    int
-	Os        string
-	OsSub     string
-	OsVersion string
+	Platform    string
+	DeviceId    string
+	Cpu         string
+	Gpu         string
+	DeviceBrand string
+	Memory      int
+	Os          string
+	OsSub       string
+	OsVersion   string
 }
 type FormatErrorType struct {
-	CallStack string
-	Reason    string
-	Name      string
+	CallStack  string
+	Reason     string
+	Name       string
 	CallStacks []string
 }
 type ErrorPacketType struct {
