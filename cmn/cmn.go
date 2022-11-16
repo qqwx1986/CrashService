@@ -81,6 +81,7 @@ func Md5SumFile(fileName string) string {
 var HttpReceiverCrashPath = "/receiverCrash"
 var HttpReceiverErrorPath = "/receiverError"
 var HttpUploadSymbolPath = "/uploadSymbol"
+var HttpReceiverUECrashPath = "/receiverUECrash"
 
 type fileOutput struct {
 	file     *os.File

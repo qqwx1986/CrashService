@@ -22,6 +22,7 @@ import (
 // Server 相关参数
 var httpPort *int
 var crashBasePath string
+var UECrashBasePath string
 var symbolBasePath string
 var errorBasePath string
 var basePath *string
@@ -31,7 +32,7 @@ var daemon *bool
 var addr2linePath *string
 var androidSymbolName *string
 
-//channel 数量
+// channel 数量
 var chanNum *int
 
 var minidumpChan chan *minidumpChanType
@@ -65,10 +66,12 @@ func Run() {
 	*basePath, err = filepath.Abs(*basePath)
 	cmn.TrimPath(basePath)
 	crashBasePath = filepath.Join(*basePath, "crash")
+	UECrashBasePath = filepath.Join(*basePath, "UECrash")
 	symbolBasePath = filepath.Join(*basePath, "symbol")
 	errorBasePath = filepath.Join(*basePath, "error")
 	dumpAnlyisePath = filepath.Join(*basePath, "tool")
 	os.MkdirAll(crashBasePath, os.ModePerm)
+	os.MkdirAll(UECrashBasePath, os.ModePerm)
 	os.MkdirAll(symbolBasePath, os.ModePerm)
 	os.MkdirAll(errorBasePath, os.ModePerm)
 	os.MkdirAll(dumpAnlyisePath, os.ModePerm)
@@ -97,6 +100,7 @@ func Run() {
 	}
 	http.Handle("/error/", http.StripPrefix("/error/", http.FileServer(http.Dir(errorBasePath))))
 	http.Handle("/crash/", http.StripPrefix("/crash/", http.FileServer(http.Dir(crashBasePath))))
+	http.Handle("/UECrash/", http.StripPrefix("/crash/", http.FileServer(http.Dir(UECrashBasePath))))
 	http.Handle("/symbol/", http.StripPrefix("/symbol/", http.FileServer(http.Dir(symbolBasePath))))
 
 	http.HandleFunc("/hello", func(writer http.ResponseWriter, request *http.Request) {
@@ -184,6 +188,20 @@ func Run() {
 
 		}
 
+		io.WriteString(writer, "OK")
+	})
+	http.HandleFunc(cmn.HttpReceiverUECrashPath, func(writer http.ResponseWriter, request *http.Request) {
+		if strings.ToUpper(request.Method) != "POST" {
+			writer.WriteHeader(405)
+			logrus.Errorf("Http recv %s,%s,need POST", request.URL.Path, request.Method)
+			return
+		}
+		var buff = receiveBody(request.Body)
+		if dir, err := unPackUECrash(buff, UECrashBasePath); err != nil {
+			logrus.Errorf("unPackUECrash %s", err.Error())
+		} else {
+			getCrashInfo(request, dir)
+		}
 		io.WriteString(writer, "OK")
 	})
 	listener, err := net.Listen("tcp4", fmt.Sprintf(":%d", *httpPort))

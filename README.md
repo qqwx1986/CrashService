@@ -4,6 +4,7 @@ UE相关平台Crash服务处理，包含客户端（windows,android,ios）和服
 
 已完成支持功能：<br>
 1) Windows Crash上报收集和解析
+2) UE原生的CrashReportClient的收集器，作为CrashReportServer
 2) Error 错误日志上报和收集
 3) 符号表上传和接收
 4) Linux Crash 收集，Linux 上报方式和 Windows 一样
@@ -23,6 +24,11 @@ UE相关平台Crash服务处理，包含客户端（windows,android,ios）和服
 执行 build_client_windows.bat 生成到 build/CrashReportClient.exe ,或者直接下载已经编译好的二进制文件<br>
 
 打包UE4项目后，拷贝 build/CrashReportClient.exe 到 ${ClientPack}/Engine/Binaries/Win64/
+
+### 编辑器原生上报
+修改 Engine/Programs/CrashReportClient/Config/DefaultEngine.ini
+
+DataRouterUrl="http://127.0.0.1:13333/receiverUECrash"
 
 ### linux 上报崩溃日志
 
@@ -48,14 +54,14 @@ https://github.com/qqwx1986/CrashHandle 中上报处理
 
 -version 符号表的版本号，如果不填，android默认是 latest，linux和windows默认是二进制执行文件的md5码
 
-```azure
+```shell
 CrashReportClient.exe uploadSymbol -url=${httpUrl} -symbolPath= ${symbolPath} -executePath=${executePath} -platform=${platform}
     
 ./CrashReportClient uploadSymbol -url=${httpUrl} -symbolPath= ${symbolPath} -executePath=${executePath} -platform=${platform}
 ```
 ### 上传错误日志
 配合  https://github.com/qqwx1986/CrashHandle 插件，调用以下接口上传错误信息
-```azure
+```shell
 void UCrashHandleBlueprintLibrary::ReportError(const FString& Error);
 ```
 
@@ -83,7 +89,7 @@ void UCrashHandleBlueprintLibrary::ReportError(const FString& Error);
 
 -androidSymbolName 为解析 android 的符号表名称，UE4打完包后 ${UE4_Project}/Binaries/Android/ 目录下 *.so 的具体名称，上传的符号表也是这个
 
-```azure
+```shell
 CrashReceiverServer.exe server -httpPort=13333 -basePath=${basePath} -dumpAnlyiseUrl=${dumpAnlyiseUrl}  -chanNum=2 -daemon=false
 ```
 ### 符号表接收服务
@@ -100,6 +106,8 @@ CrashReceiverServer.exe server -httpPort=13333 -basePath=${basePath} -dumpAnlyis
 http://${httpUrl}/error 浏览错误信息
 
 http://${httpUrl}/crash 浏览崩溃信息
+
+http://${httpUrl}/UECrash 浏览UE崩溃信息
 
 http://${httpUrl}/symbol 浏览符号表
 
