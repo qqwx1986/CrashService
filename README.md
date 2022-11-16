@@ -4,7 +4,7 @@ UE相关平台Crash服务处理，包含客户端（windows,android,ios）和服
 
 已完成支持功能：<br>
 1) Windows Crash上报收集和解析
-2) UE原生的CrashReportClient的收集器，作为CrashReportServer
+2) UE原生的CrashReportClient的收集器，作为CrashReportServer（不用和CrashHandle配合使用）
 2) Error 错误日志上报和收集
 3) 符号表上传和接收
 4) Linux Crash 收集，Linux 上报方式和 Windows 一样
